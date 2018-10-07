@@ -12,14 +12,18 @@ class Search extends React.Component {
       films: [],
       isLoading: false
     }
+    this.page = 0
+    this.totalPages = 0
   }
 
   _loadFilms() {
     this.setState({ isLoading: true })
     if (this.searchedText.length > 0) { // Seulement si le texte recherché n'est pas vide
-      getFilmsFromApiWithSearchedText(this.searchedText).then(data => {
+      getFilmsFromApiWithSearchedText(this.searchedText, this.page+1).then(data => {
+          this.page = data.page
+          this.totalPages = data.total_pages
           this.setState({
-            films: data.results,
+            films: [...this.state.films, ...data.results],
             isLoading: false
           })
       })
@@ -37,22 +41,38 @@ class Search extends React.Component {
   _searchTextInputChanged(text) {
     this.searchedText = text // Modification du texte recherché à chaque saisie de texte, sans passer par le setState comme avant
   }
+  _searchFilms(){
+    this.page = 0
+    this.totalPages = 0
+    this.setState({
+      films: []
+    }, ()=>{
+        this._loadFilms()
+    })
 
+  }
   render() {
     console.log("RENDER")
     return (
       <View style={styles.main_container}>
         <TextInput
           style={styles.textinput}
-          onSubmitEditing={() => this._loadFilms()}
+          onSubmitEditing={() => this._searchFilms()}
           placeholder='Titre du film'
           onChangeText={(text) => this._searchTextInputChanged(text)}
         />
-        <Button style={{ height: 50 }} title='Rechercher' onPress={() => this._loadFilms()}/>
+        <Button style={{ height: 50 }} title='Rechercher' onPress={() => this._searchFilms()}/>
         <FlatList
           data={this.state.films}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({item}) => <FilmItem film={item}/>}
+          renderItem={({item}) => <FilmItem film={item}
+          onEndReachedThreshold={0.5}
+          onEndReached={() =>{
+            if(this.state.films.length > 0 && this.page < this.totalPages){
+              this._loadFilms()
+            }
+          }}
+          />}
         />
         {this._displayLoading()}
       </View>
