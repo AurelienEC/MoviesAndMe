@@ -2,3 +2,4 @@ node_modules/**/*
 .expo/*
 npm-debug.*
 Helpers/token.js
+.idea/*
