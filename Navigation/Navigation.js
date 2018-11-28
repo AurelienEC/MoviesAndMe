@@ -1,6 +1,6 @@
-// Navigation/Navigation.js
+// Navigation/Navigations.js
 
-import React from 'react' // N'oubliez pas l'import de React ici. On en a besoin pour rendre nos components React Native Image ! 
+import React from 'react'
 import { StyleSheet, Image } from 'react-native';
 import { createStackNavigator, createBottomTabNavigator } from 'react-navigation'
 import Search from '../Components/Search'
@@ -19,20 +19,32 @@ const SearchStackNavigator = createStackNavigator({
     }
 })
 
+const FavoritesStackNavigator = createStackNavigator({
+    Favorites: {
+        screen: Favorites,
+        navigationOptions: {
+            title: 'Favoris'
+        }
+    },
+    FilmDetail: {
+        screen: FilmDetail
+    }
+})
+
 const MoviesTabNavigator = createBottomTabNavigator(
     {
         Search: {
             screen: SearchStackNavigator,
             navigationOptions: {
-                tabBarIcon: () => { // On définit le rendu de nos icônes par les images récemment ajoutés au projet
+                tabBarIcon: () => {
                     return <Image
                         source={require('../Images/ic_search.png')}
-                        style={styles.icon}/> // On applique un style pour les redimensionner comme il faut
+                        style={styles.icon}/>
                 }
             }
         },
         Favorites: {
-            screen: Favorites,
+            screen: FavoritesStackNavigator,
             navigationOptions: {
                 tabBarIcon: () => {
                     return <Image
@@ -44,10 +56,10 @@ const MoviesTabNavigator = createBottomTabNavigator(
     },
     {
         tabBarOptions: {
-            activeBackgroundColor: '#DDDDDD', // Couleur d'arrière-plan de l'onglet sélectionné
-            inactiveBackgroundColor: '#FFFFFF', // Couleur d'arrière-plan des onglets non sélectionnés
-            showLabel: false, // On masque les titres
-            showIcon: true // On informe le TabNavigator qu'on souhaite afficher les icônes définis
+            activeBackgroundColor: '#DDDDDD',
+            inactiveBackgroundColor: '#FFFFFF',
+            showLabel: false,
+            showIcon: true
         }
     }
 )

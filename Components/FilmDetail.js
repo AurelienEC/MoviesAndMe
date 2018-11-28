@@ -1,30 +1,97 @@
 // Components/FilmDetail.js
 
 import React from 'react'
-import { StyleSheet, View, Text, ActivityIndicator, ScrollView, Image, TouchableOpacity } from 'react-native'
+import {
+    Platform,
+    StyleSheet,
+    View,
+    Text,
+    ActivityIndicator,
+    ScrollView,
+    Image,
+    TouchableOpacity,
+    Share,
+    Alert
+} from 'react-native'
 import { getFilmDetailFromApi, getImageFromApi } from '../API/TMDBApi'
 import moment from 'moment'
 import numeral from 'numeral'
-import {connect} from 'react-redux'
+import { connect } from 'react-redux'
 
 class FilmDetail extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
             film: undefined,
-            isLoading: true
+            isLoading: false
         }
+        this._shareFilm = this._shareFilm.bind(this)
     }
 
     componentDidMount() {
+        const favoriteFilmIndex = this.props.favoritesFilm.findIndex(item => item.id === this.props.navigation.state.params.idFilm)
+        if (favoriteFilmIndex !== -1) {
+            this.setState({
+                film: this.props.favoritesFilm[favoriteFilmIndex]
+            }, () => { this._updateNavigationParams() })
+            return
+        }
+
+        this.setState({ isLoading: true })
         getFilmDetailFromApi(this.props.navigation.state.params.idFilm).then(data => {
             this.setState({
                 film: data,
                 isLoading: false
-            })
+            }, () => { this._updateNavigationParams() })
         })
     }
-
+    static navigationOptions = ({ navigation}) => {
+        const {params} = navigation.state
+        if (params.film !== undefined && Platform.OS === 'ios'){
+            return {
+                headerRight:    <TouchableOpacity
+                                    style={styles.share_touchable_headerrightbutton}
+                                    onPress={() => params.shareFilm()}>
+                                    <Image
+                                        style={styles.share_image}
+                                        source={require('../Images/ic_share.png')}
+                                    />
+                                </TouchableOpacity>
+            }
+        }
+    }
+    _updateNavigationParams() {
+        this.props.navigation.setParams({
+            shareFilm: this._shareFilm,
+            film: this.state.film
+        })
+    }
+    _shareFilm(){
+        const {film} = this.state
+        Share.share({title: film.title, message: film.overview})
+            .then(
+                Alert.alert(
+                    'Succès',
+                    'Film partagé'
+                )
+            )
+    }
+    _displayFloatingActionButton(){
+        const {film } = this.state
+        if(film !== undefined && Platform.OS ==="android"){
+            return(
+                <TouchableOpacity
+                    style={styles.share_touchable_floatingactionbutton}
+                    onPress={()=>this._shareFilm()}
+                >
+                    <Image
+                        style={styles.share_image}
+                        source = {require('../Images/ic_share.png')}
+                    />
+                </TouchableOpacity>
+            )
+        }
+    }
     _displayLoading() {
         if (this.state.isLoading) {
             return (
@@ -34,24 +101,26 @@ class FilmDetail extends React.Component {
             )
         }
     }
-    _toggleFavorite(){
+
+    _toggleFavorite() {
         const action = { type: "TOGGLE_FAVORITE", value: this.state.film }
         this.props.dispatch(action)
     }
-    componentDidUpdate(){
-        console.log(this.props.favoritesFilm)
-    }
-    _displayFavoriteImage(){
+
+    _displayFavoriteImage() {
         var sourceImage = require('../Images/ic_favorite_border.png')
-        if(this.props.favoritesFilm.findIndex(item => item.id === this.state.film.id) !== -1 ){
+        if (this.props.favoritesFilm.findIndex(item => item.id === this.state.film.id) !== -1) {
+            // Film dans nos favoris
             sourceImage = require('../Images/ic_favorite.png')
         }
         return (
             <Image
-            source={sourceImage}
-            style={styles.favorite_image}/>
+                style={styles.favorite_image}
+                source={sourceImage}
+            />
         )
     }
+
     _displayFilm() {
         const { film } = this.state
         if (film != undefined) {
@@ -63,8 +132,8 @@ class FilmDetail extends React.Component {
                     />
                     <Text style={styles.title_text}>{film.title}</Text>
                     <TouchableOpacity
-                        onPress={() => this._toggleFavorite()}
-                        style={styles.favorite_container}>
+                        style={styles.favorite_container}
+                        onPress={() => this._toggleFavorite()}>
                         {this._displayFavoriteImage()}
                     </TouchableOpacity>
                     <Text style={styles.description_text}>{film.overview}</Text>
@@ -76,6 +145,7 @@ class FilmDetail extends React.Component {
                         return genre.name;
                     }).join(" / ")}
                     </Text>
+                    {this._displayFloatingActionButton()}
                     <Text style={styles.default_text}>Companie(s) : {film.production_companies.map(function(company){
                         return company.name;
                     }).join(" / ")}
@@ -127,6 +197,9 @@ const styles = StyleSheet.create({
         color: '#000000',
         textAlign: 'center'
     },
+    favorite_container: {
+        alignItems: 'center',
+    },
     description_text: {
         fontStyle: 'italic',
         color: '#666666',
@@ -138,17 +211,33 @@ const styles = StyleSheet.create({
         marginRight: 5,
         marginTop: 5,
     },
-    favorite_container: {
-        alignItems: "center"
-    },
-    favorite_image:{
+    favorite_image: {
         width: 40,
         height: 40
+    },
+    share_touchable_floatingactionbutton: {
+        position: 'absolute',
+        width: 60,
+        height: 60,
+        right: 30,
+        bottom: 30,
+        borderRadius: 30,
+        backgroundColor: '#e91e63',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    share_image:{
+        width: 30,
+        height: 30
+    },share_touchable_headerrightbutton: {
+        marginRight: 8
     }
 })
+
 const mapStateToProps = (state) => {
     return {
         favoritesFilm: state.favoritesFilm
     }
 }
-export default connect(mapStateToProps)( FilmDetail )
+
+export default connect(mapStateToProps)(FilmDetail)
